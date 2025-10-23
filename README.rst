@@ -7,6 +7,12 @@ imagedata-format-pdf
 
 Imagedata plugin for reading PDF files as encapsulated PDF.
 
+Plugin options::
+
+  * encapsulate
+  * dpi
+  * rotate
+
 
 .. |Docs Badge| image:: https://readthedocs.org/projects/imagedata/badge/
     :alt: Documentation Status
