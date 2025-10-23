@@ -28,41 +28,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            export CFLAGS="-Wno-implicit-function-declaration"
-          fi
-          # python3 -m pip install --upgrade setuptools pip wheel
-          # python3 -m pip install cython numpy flake8 coverage nipype
-          # python3 -m pip install -e .
+          python3 -m pip install -e .
       - name: Lint with flake8
         run: |
           pip install --upgrade pip flake8
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-      - name: Build wheels
-        # uses: pypa/cibuildwheel@v2.16.1
-        env:
-          # Skip 32-bit builds
-          # Disable building PyPy wheels on all platforms
-          # Skip all musllinux (manylinux only supported by itk-io)
-          CIBW_SKIP: "*-win32 *-manylinux_i686 pp* *-musllinux*"
-          CIBW_BEFORE_ALL_LINUX: curl -sSf https://sh.rustup.rs | sh -s -- -y
-          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
-          NPY_NO_DEPRECATED_API: "NPY_1_7_API_VERSION"
 
-
-
-      - name: Testing - with Cython
+      - name: Testing
         #          python3 -m pip install nipype
         #          python3 -m pip install -e .
         run: |
-          python3 -m pip install cython numpy flake8 coverage nipype
-          python3 -m coverage run -m unittest discover tests -t .
-      - name: Testing - without Cython
-        run: |
-          find . -name '*.so' | xargs rm
-          #          python3 -m pip install nipype
-          #          python3 -m pip install -e .
+          python3 -m pip install numpy flake8 coverage imagedata
           python3 -m coverage run -m unittest discover tests -t .
       - uses: actions/upload-artifact@v4
         with:
