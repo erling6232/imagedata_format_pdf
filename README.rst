@@ -2,7 +2,8 @@
 imagedata-format-pdf
 ######################
 
-|Docs Badge| |buildstatus|  |coverage| |pypi|
+# |Docs Badge| |buildstatus|  |coverage| |pypi|
+|buildstatus|  |pypi|
 
 
 Imagedata plugin for reading PDF files as encapsulated PDF.
@@ -10,11 +11,11 @@ Imagedata plugin for reading PDF files as encapsulated PDF.
 
 .. |Docs Badge| image:: https://readthedocs.org/projects/imagedata/badge/
     :alt: Documentation Status
-    :scale: 100%
     :target: https://imagedata.readthedocs.io
 
-.. |buildstatus| image:: https://github.com/erling6232/imagedata_format_pdf/actions/workflows/ci.yml/badge.svg
-    :target: https://github.com/erling6232/imagedata_format_pdf/actions?query=branch%3Amaster
+
+.. |buildstatus| image:: https://github.com/erling6232/imagedata_format_pdf/actions/workflows/build_wheels.yml/badge.svg
+    :target: https://github.com/erling6232/imagedata_format_pdf/actions?query=branch%3Amain
     :alt: Build Status
 
 .. _buildstatus: https://github.com/erling6232/imagedata_format_pdf/actions
