@@ -30,7 +30,7 @@ class Test2DPDFPlugin(unittest.TestCase):
         imagedata.cmdline.add_argparse_options(parser)
 
         self.opts = parser.parse_args(['--serdes', '1'])
-        self.encapsulate_opts = parser.parse_args(['--serdes', '1', '--pdfopt', 'encapsulate=True'])
+        self.encapsulate_opts = parser.parse_args(['--serdes', '1', '--input_options', 'encapsulate=True'])
 
         plugins = imagedata.formats.get_plugins_list()
         self.pdf_plugin = None
@@ -116,6 +116,22 @@ class Test2DPDFPlugin(unittest.TestCase):
         self.assertEqual(si1.dtype, np.uint8)
         self.assertEqual(si1.shape, (6, 2339, 1653, 3))
 
+    def test_write_dicom_single_file(self):
+        si1 = Series(
+            os.path.join('data', 'pages', 'A_Lovers_Complaint_1.pdf'),
+            'none',
+            self.opts)
+        with tempfile.TemporaryDirectory() as d:
+            si1.write(d, formats=['dicom'])
+
+    def test_write_dicom_files(self):
+        si1 = Series(
+            os.path.join('data', 'A_Lovers_Complaint.pdf'),
+            'none',
+            self.opts)
+        with tempfile.TemporaryDirectory() as d:
+            si1.write(d, formats=['dicom'])
+
     # @unittest.skip("skipping test_write_single_file")
     def test_write_single_file(self):
         si1 = Series(
@@ -125,11 +141,6 @@ class Test2DPDFPlugin(unittest.TestCase):
         with self.assertRaises(imagedata.formats.WriteNotImplemented):
             with tempfile.TemporaryDirectory() as d:
                 si1.write(d + '?Image%05d.pdf', formats=['pdf'])
-        # try:
-        #     with tempfile.TemporaryDirectory() as d:
-        #         si1.write(d + '?Image%05d.pdf', formats=['pdf'])
-        # except imagedata.formats.WriteNotImplemented:
-        #     pass
 
     # @unittest.skip("skipping test_encapsulate_single_file")
     def test_encapsulate_single_file(self):
@@ -137,9 +148,19 @@ class Test2DPDFPlugin(unittest.TestCase):
             os.path.join('data', 'pages/A_Lovers_Complaint_1.pdf'),
             'none',
             self.encapsulate_opts)
+        si1.seriesDescription = 'A Lovers Complaint page 1'
         with tempfile.TemporaryDirectory() as d:
             si1.write(d, formats=['dicom'])
-            print(d.name)
+
+    # @unittest.skip("skipping test_encapsulate_files")
+    def test_encapsulate_files(self):
+        si1 = Series(
+            os.path.join('data', 'A_Lovers_Complaint.pdf'),
+            'none',
+            self.encapsulate_opts)
+        si1.seriesDescription = 'A Lovers Complaint'
+        with tempfile.TemporaryDirectory() as d:
+            si1.write(d, formats=['dicom'])
 
 
 if __name__ == '__main__':

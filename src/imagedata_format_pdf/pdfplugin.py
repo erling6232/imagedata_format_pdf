@@ -1,40 +1,18 @@
-"""Read/Write PostScript files
+"""Read/Write PDF files
 """
 
-# Copyright (c) 2022 Erling Andersen, Haukeland University Hospital,
+# Copyright (c) 2022-2025 Erling Andersen, Haukeland University Hospital,
 # Bergen, Norway
 
-import os.path
-import locale
 import logging
-import magic
-import tempfile
 import numpy as np
 import pydicom
-from pydicom.dataset import Dataset, FileDataset
-from pydicom.sequence import Sequence
-import datetime
-from pdf2image import convert_from_bytes, convert_from_path
+from pydicom.uid import UID
 
 import imagedata.formats
 from imagedata.formats.abstractplugin import AbstractPlugin
-from . import POPPLER_INSTALLED
 
 logger = logging.getLogger(__name__)
-
-
-class ImageTypeError(Exception):
-    """
-    Thrown when trying to load or save an image of unknown type.
-    """
-    pass
-
-
-class DependencyError(Exception):
-    """
-    Thrown when a required module could not be loaded.
-    """
-    pass
 
 
 class PDFPlugin(AbstractPlugin):
@@ -68,48 +46,69 @@ class PDFPlugin(AbstractPlugin):
                 si: numpy array (multi-dimensional)
         """
 
-        if not POPPLER_INSTALLED:
-            raise OSError("Poppler is not installed")
         self.dpi = 150  # dpi
         self.rotate = 0
+        self.encapsulate = 'false'
+        self.documentTitle = self.manufacturer = ''
+        self.acqdatetime = '19700101'
         legal_attributes = {'dpi', 'rotate', 'encapsulate'}
-        if 'pdfopt' in opts and opts['pdfopt']:
-            for expr in opts['pdfopt'].split(','):
-                attr,value = expr.split('=')
+        if 'input_options' in opts and opts['input_options']:
+            for attr in opts['input_options']:
                 if attr in legal_attributes:
-                    setattr(self, attr, value)
+                    setattr(self, attr, opts['input_options'][attr])
                 else:
-                    raise ValueError('Unknown attribute {} set in psopt'.format(attr))
+                    raise ValueError('Unknown attribute {} set in input_options'.format(attr))
         self.dpi = int(self.dpi)
         self.rotate = int(self.rotate)
-        self.encapsulate = self.encapsulate.lower() == 'true' or self.encapsulate.lower() == 'on'
+        if isinstance(self.encapsulate, str):
+            self.encapsulate = self.encapsulate.lower() in ['true', 'on']
         if self.rotate not in {0, 90}:
             raise ValueError('psopt rotate value {} is not implemented'.format(self.rotate))
+
+        if hdr.input_order == 'auto':
+            hdr.input_order = 'none'
+
         if self.encapsulate:
-            ds = self.generate_dicom_from_pdf(f)
-            hdr.DicomHeaderDict = [[(None, None, ds)]]
-            hdr.tags = [0]
-            hdr.tags[0] = [0]
-            return hdr, None
+            self.EncapsulatedDocument = self.generate_pdf_document(f)
+            si = None
+            return hdr, si
 
         # No PDF encapsulation, convert PDF to bitmaps
+        image_list = []
         try:
-            # Convert filename to PNG
-            # self._convert_to_png(f, tempdir, "fname%02d.png")
-            # self._pdf_to_png(f, os.path.join(tempdir.name, "fname.png"))
-            # image_list = convert_from_path(f)
-            image_list = convert_from_bytes(f.read())
-        except imagedata.formats.NotImageError:
-            raise imagedata.formats.NotImageError('{} does not look like a PostScript file'.format(f))
+            # Convert filename to bitmap
+            import pypdfium2 as pdfium
+            pdf = pdfium.PdfDocument(f)
+            # version = pdf.get_version()  # get the PDF standard version
+            self.documentTitle = pdf.get_metadata_value('Title')
+            self.manufacturer = pdf.get_metadata_value('Creator')
+            self.acqdatetime = pdf.get_metadata_value('CreationDate').split('+')[0]
+            if self.acqdatetime[:2] == 'D:':
+                self.acqdatetime = self.acqdatetime[2:]
+            n_pages = len(pdf)  # get the number of pages in the document
+            for i in range(n_pages):
+                page = pdf[i]
+                bitmap = page.render(
+                    scale=self.dpi/72,  # 72dpi resolution
+                    rotation=self.rotate,  # no additional rotation
+                    # ... further rendering options
+                )
+                im = bitmap.to_numpy()
+                image_list.append(im)
+        except Exception as e:
+            raise imagedata.formats.NotImageError('{} does not look like a PDF file ({})'.format(f, e))
         if len(image_list) < 1:
             raise ValueError('No image data read')
-        img = image_list[0]
-        shape = (len(image_list), img.height, img.width, 3)
-        dtype = np.uint8
+        max_rows = max([img.shape[0] for img in image_list])
+        max_columns = max([img.shape[1] for img in image_list])
+        shape = (len(image_list), max_rows, max_columns)
+        dtype = np.dtype([('R', 'u1'), ('G', 'u1'), ('B', 'u1')])
         si = np.zeros(shape, dtype)
         for i, img in enumerate(image_list):
             logger.debug('read: img {} si {}'.format(img.size, si.size))
-            si[i] = img
+            si[i, :img.shape[0], :img.shape[1]]['R'] = img[..., 0]
+            si[i, :img.shape[0], :img.shape[1]]['G'] = img[..., 1]
+            si[i, :img.shape[0], :img.shape[1]]['B'] = img[..., 2]
         hdr.spacing = (1.0, 1.0, 1.0)
         # Color space: RGB
         hdr.photometricInterpretation = 'RGB'
@@ -145,7 +144,26 @@ class PDFPlugin(AbstractPlugin):
             hdr: Header
         """
 
-        #super(PDFPlugin, self)._set_tags(image_list, hdr, si)
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('Modality'), 'DOC', None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('ConversionType'), 'WSD', None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('BurnedInAnnotation'), 'YES', None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('RecognizableVisualFeatures'), 'YES', None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('DocumentTitle'), self.documentTitle, None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('VerificationFlag'), 'UNVERIFIED', None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('AcquisitionDateTime'), self.acqdatetime, None, None))
+        hdr.dicomToDo.append((pydicom.datadict.tag_for_keyword('Manufacturer'), self.manufacturer, None, None))
+
+        if self.encapsulate:
+            hdr.SOPClassUID = UID('1.2.840.10008.5.1.4.1.1.104.1')
+            hdr.dicomToDo.append((
+                pydicom.datadict.tag_for_keyword('EncapsulatedDocument'),
+                self.EncapsulatedDocument, None, None
+            ))
+            hdr.dicomToDo.append((
+                pydicom.datadict.tag_for_keyword('MIMETypeOfEncapsulatedDocument'),
+                'application/pdf', None, None
+            ))
+            return
 
         # Default spacing and orientation
         hdr.spacing = (1.0, 1.0, 1.0)
@@ -155,37 +173,26 @@ class PDFPlugin(AbstractPlugin):
 
         # Set tags
         axes = list()
-        _actual_shape = si.shape
-        _color = False
-        if hdr.color:
-            _actual_shape = si.shape[:-1]
-            _color = True
-        _actual_ndim = len(_actual_shape)
         nz = 1
         axes.append(imagedata.axis.UniformLengthAxis(
             'row',
             hdr.imagePositions[0][1],
-            _actual_shape[-2],
+            si.shape[-2],
             hdr.spacing[1])
         )
         axes.append(imagedata.axis.UniformLengthAxis(
             'column',
             hdr.imagePositions[0][2],
-            _actual_shape[-1],
+            si.shape[-1],
             hdr.spacing[2])
         )
-        if _actual_ndim > 2:
-            nz = _actual_shape[-3]
+        if si.ndim > 2:
+            nz = si.shape[-3]
             axes.insert(0, imagedata.axis.UniformLengthAxis(
                 'slice',
                 hdr.imagePositions[0][0],
                 nz,
                 hdr.spacing[0])
-            )
-        if _color:
-            axes.append(imagedata.axis.VariableAxis(
-                'rgb',
-                ['r', 'g', 'b'])
             )
         hdr.axes = axes
 
@@ -193,90 +200,15 @@ class PDFPlugin(AbstractPlugin):
         for slice in range(nz):
             tags[slice] = np.array([0])
         hdr.tags = tags
+
         return
 
-    @staticmethod
-    def _pdf_to_png(inputPath, outputPath):
-        # def _convert_to_png(self, filename, tempdir, fname):
-
-        """Convert from pdf to png by using python gfx
-
-        The resolution of the output png can be adjusted in the config file
-        under General -> zoom, typical value 150
-        The quality of the output png can be adjusted in the config file under
-        General -> antiAlise, typical value 5
-
-        :param inputPath: path to a pdf file
-        :param outputPath: path to the location where the output png will be
-            saved
-        """
-        """
-        Args:
-        filename: PostScript file
-        tempdir:  Output directory
-        fname:    Output filename
-        Multi-page PostScript files will be converted to fname-N.png
-        """
-        print("converting pdf {} {}".format(inputPath, outputPath))
-        gfx.setparameter("zoom", config.readConfig("zoom"))  # Gives the image higher resolution
-        doc = gfx.open("pdf", inputPath)
-        img = gfx.ImageList()
-
-        img.setparameter("antialise", config.readConfig("antiAliasing"))  # turn on antialising
-        page1 = doc.getPage(1)
-        img.startpage(page1.width, page1.height)
-        page1.render(img)
-        img.endpage()
-        img.save(outputPath)
-        
-    def generate_dicom_from_pdf(self, f):
-        suffix = '.dcm'
-        filename = tempfile.NamedTemporaryFile(suffix=suffix).name
-
-        file_meta = Dataset()
-        file_meta.MediaStorageSOPClassUID = '1.2.840.10008.5.1.4.1.1.104.1'
-        file_meta.MediaStorageSOPInstanceUID = '2.16.840.1.114430.287196081618142314176776725491661159509.60.1'
-        file_meta.ImplementationClassUID = '1.3.46.670589.50.1.8.0'
-        file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.1'
-
-        ds = FileDataset(filename, {},
-                     file_meta=file_meta, preamble=b"\0" * 128)
-
-        ds.is_little_endian = True
-        ds.is_implicit_VR = False
-
-        dt = datetime.datetime.now()
-        ds.StudyDate = dt.strftime('%Y%m%d')
-        ds.StudyTime = dt.strftime('%H%M%S.%f')
-        ds.ContentDate = dt.strftime('%Y%m%d')
-        ds.ContentTime = dt.strftime('%H%M%S.%f')
-        ds.AcquisitionDateTime = '19700101'
-        ds.Manufacturer = 'imagedata'
-        ds.ReferringPhysicianName = ''
-
-        ds.SOPClassUID = '1.2.840.10008.5.1.4.1.1.104.1'
-
+    def generate_pdf_document(self, f):
         f_read = f.read()
-        ValueLength = len(f_read)
-        # All Dicom Element must have an even ValueLength
-        if ValueLength % 2 != 0:
+        # All Dicom Elements must have an even ValueLength
+        if len(f_read) % 2 != 0:
             f_read += b'\0'
-        ds.EncapsulatedDocument = f_read
-
-        ds.MIMETypeOfEncapsulatedDocument = 'application/pdf'
-
-        ds.Modality = 'DOC'  # document
-        ds.ConversionType = 'WSD'  # workstation
-        ds.SpecificCharacterSet = 'ISO_IR 100' 
-        # more codes for character encoding here https://dicom.innolitics.com/ciods/cr-image/sop-common/00080005
-        ds.BurnedInAnnotation = 'YES'
-        ds.RecognizableVisualFeatures = 'YES'
-        ds.DocumentTitle = ''
-        ds.VerificationFlag = 'UNVERIFIED'
-        ds.InstanceNumber = 1
-        ds.ConceptNameCodeSequence = Sequence([])
-
-        return ds
+        return f_read
 
     def write_3d_numpy(self, si, destination, opts):
         """Write 3D numpy image as PostScript file
@@ -284,12 +216,12 @@ class PDFPlugin(AbstractPlugin):
         Args:
             self: ITKPlugin instance
             si: Series array (3D or 4D), including these attributes:
-            -   slices,
-            -   spacing,
-            -   imagePositions,
-            -   transformationMatrix,
-            -   orientation,
-            -   tags
+            - slices,
+            - spacing,
+            - imagePositions,
+            - transformationMatrix,
+            - orientation,
+            - tags
 
             destination: dict of archive and filenames
             opts: Output options (dict)
@@ -305,12 +237,12 @@ class PDFPlugin(AbstractPlugin):
         Args:
             self: ITKPlugin instance
             si[tag,slice,rows,columns]: Series array, including these attributes:
-            -   slices,
-            -   spacing,
-            -   imagePositions,
-            -   transformationMatrix,
-            -   orientation,
-            -   tags
+            - slices,
+            - spacing,
+            - imagePositions,
+            - transformationMatrix,
+            - orientation,
+            - tags
 
             destination: dict of archive and filenames
             opts: Output options (dict)
