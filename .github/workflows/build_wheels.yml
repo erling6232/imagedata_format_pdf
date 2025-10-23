@@ -8,8 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
-        # os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest, macos-latest ]
         # os: [ubuntu-22.04, windows-2022, macos-11]
 
     steps:
@@ -110,20 +109,12 @@ jobs:
     # or, alternatively, upload to PyPI on every tag starting with 'v' (remove on: release above to use this)
     # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download the ubuntu-22.latest dists
+      - name: Download all the dists
         uses: actions/download-artifact@v4
         with:
           # unpacks default artifact into dist/
           # if `name: artifact` is omitted, the action will create extra parent dir
-          name: artifact.ubuntu-latest
-          path: dist
-
-      - name: Download the macos-latest dists
-        uses: actions/download-artifact@v4
-        with:
-          # unpacks default artifact into dist/
-          # if `name: artifact` is omitted, the action will create extra parent dir
-          name: artifact.macos-latest
+          name: artifact
           path: dist
 
       - name: Upload distribution to PyPI
