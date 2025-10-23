@@ -40,13 +40,13 @@ jobs:
 #        with:
 #          name: artifact.${{ matrix.os }}
 #          path: ./wheelhouse/*.whl
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-          flags: unittests
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: erling6232/imagedata_format_pdf
+#      - name: Upload coverage reports to Codecov
+#        uses: codecov/codecov-action@v4
+#        with:
+#          fail_ci_if_error: true
+#          flags: unittests
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          slug: erling6232/imagedata_format_pdf
 
 
           #  build_sdist:
