@@ -2,8 +2,7 @@
 imagedata-format-pdf
 ######################
 
-# |Docs Badge| |buildstatus|  |coverage| |pypi|
-|buildstatus|  |pypi|
+|Docs Badge| |buildstatus|  |coverage| |pypi|
 
 
 Imagedata plugin for reading PDF files as encapsulated PDF.
