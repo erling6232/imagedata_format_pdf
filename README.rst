@@ -7,7 +7,7 @@ imagedata-format-pdf
 
 Imagedata plugin for reading PDF files as encapsulated PDF.
 
-Plugin options::
+Plugin options:
 
 +-------------------------+------------------------+------+-----------------------+
 | Plugin                  | Option Name            |Type  | Usage                 |
