@@ -5,7 +5,7 @@ imagedata-format-pdf
 |Docs Badge| |buildstatus|  |coverage| |pypi|
 
 
-Imagedata plugin for reading PDF files as encapsulated PDF.
+Imagedata plugin for reading PDF files either as encapsulated PDF in DICOM, or as Series bitmap.
 
 Plugin options:
 
