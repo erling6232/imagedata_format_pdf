@@ -9,10 +9,6 @@ Imagedata plugin for reading PDF files as encapsulated PDF.
 
 Plugin options::
 
-  * encapsulate
-  * dpi
-  * rotate
-
 +-------------------------+------------------------+------+-----------------------+
 | Plugin                  | Option Name            |Type  | Usage                 |
 +=========================+========================+======+=======================+
