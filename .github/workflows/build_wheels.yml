@@ -20,16 +20,10 @@ jobs:
       - name: Checkout imagedata_format_pdf
         uses: actions/checkout@v4
 
-#      - name: Add conda to system path
-#        run: |
-#          # $CONDA is an environment variable pointing to the root of the miniconda directory
-#          echo $CONDA/bin >> $GITHUB_PATH
-#          echo CONDA $CONDA
-#          echo GITHUB_PATH $GITHUB_PATH
-
       - name: Install dependencies
         run: |
           python3 -m pip install -e .
+
       - name: Lint with flake8
         run: |
           pip install --upgrade pip flake8
@@ -42,10 +36,10 @@ jobs:
         run: |
           python3 -m pip install numpy flake8 coverage imagedata
           python3 -m coverage run -m unittest discover tests -t .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: artifact.${{ matrix.os }}
-          path: ./wheelhouse/*.whl
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: artifact.${{ matrix.os }}
+#          path: ./wheelhouse/*.whl
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
         with:
