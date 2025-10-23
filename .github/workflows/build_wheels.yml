@@ -1,0 +1,158 @@
+name: Build
+
+on: [ push, pull_request, release ]
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        # os: [ubuntu-22.04, windows-2022, macos-11]
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Checkout imagedata_format_pdf
+        uses: actions/checkout@v4
+
+#      - name: Add conda to system path
+#        run: |
+#          # $CONDA is an environment variable pointing to the root of the miniconda directory
+#          echo $CONDA/bin >> $GITHUB_PATH
+#          echo CONDA $CONDA
+#          echo GITHUB_PATH $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            export CFLAGS="-Wno-implicit-function-declaration"
+          fi
+          # python3 -m pip install --upgrade setuptools pip wheel
+          # python3 -m pip install cython numpy flake8 coverage nipype
+          # python3 -m pip install -e .
+      - name: Lint with flake8
+        run: |
+          pip install --upgrade pip flake8
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Build wheels
+        # uses: pypa/cibuildwheel@v2.16.1
+        env:
+          # Skip 32-bit builds
+          # Disable building PyPy wheels on all platforms
+          # Skip all musllinux (manylinux only supported by itk-io)
+          CIBW_SKIP: "*-win32 *-manylinux_i686 pp* *-musllinux*"
+          CIBW_BEFORE_ALL_LINUX: curl -sSf https://sh.rustup.rs | sh -s -- -y
+          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
+          NPY_NO_DEPRECATED_API: "NPY_1_7_API_VERSION"
+
+
+
+      - name: Testing - with Cython
+        #          python3 -m pip install nipype
+        #          python3 -m pip install -e .
+        run: |
+          python3 -m pip install cython numpy flake8 coverage nipype
+          python3 -m coverage run -m unittest discover tests -t .
+      - name: Testing - without Cython
+        run: |
+          find . -name '*.so' | xargs rm
+          #          python3 -m pip install nipype
+          #          python3 -m pip install -e .
+          python3 -m coverage run -m unittest discover tests -t .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifact.${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: erling6232/imagedata_format_pdf
+
+
+          #  build_sdist:
+          #    name: Build source distribution
+          #    runs-on: ubuntu-latest
+          #    steps:
+          #      - uses: actions/checkout@v4
+          #
+          #      - name: Install dependencies
+          #        run: |
+          #          pip install --upgrade pip wheel
+          #          pip install SimpleITK-SimpleElastix==2.0.0rc2.dev910
+          #
+          #      - name: Build sdist
+          #        run: pipx run build --sdist
+          #
+          #      - uses: actions/upload-artifact@v4
+          #        with:
+          #          path: dist/*.tar.gz
+
+
+          #  publish-to-testpypi:
+          #    name: Test Publish Python distribution to TestPyPi
+          #    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
+          #    needs: [build_wheels, build_sdist]
+          #    runs-on: ubuntu-latest
+          #    environment:
+          #      name: pypi
+          #      url: https://test.pypi.org/legacy
+          #    permissions:
+          #      id-token: write
+          #    # if: github.event_name == 'release' && github.event.action == 'published'
+          #    # or, alternatively, upload to PyPI on every tag starting with 'v' (remove on: release above to use this)
+          #    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+          #    steps:
+          #      - uses: actions/download-artifact@v3
+          #        with:
+          #          # unpacks default artifact into dist/
+          #          # if `name: artifact` is omitted, the action will create extra parent dir
+          #          name: artifact
+          #          path: dist
+          #
+          #      - name: Upload
+          #        uses: pypa/gh-action-pypi-publish@release/v1
+          #        with:
+          #          repository-url: https://test.pypi.org/legacy/
+
+
+  publish-to-pypi:
+    name: Publish Python distribution to PyPi
+    # if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
+    # needs: [build_wheels, build_sdist]
+    needs: [ build_wheels ]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+    permissions:
+      contents: read
+      id-token: write
+    if: github.event_name == 'release' && github.event.action == 'published'
+    # or, alternatively, upload to PyPI on every tag starting with 'v' (remove on: release above to use this)
+    # if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download the ubuntu-22.latest dists
+        uses: actions/download-artifact@v4
+        with:
+          # unpacks default artifact into dist/
+          # if `name: artifact` is omitted, the action will create extra parent dir
+          name: artifact.ubuntu-latest
+          path: dist
+
+      - name: Download the macos-latest dists
+        uses: actions/download-artifact@v4
+        with:
+          # unpacks default artifact into dist/
+          # if `name: artifact` is omitted, the action will create extra parent dir
+          name: artifact.macos-latest
+          path: dist
+
+      - name: Upload distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
