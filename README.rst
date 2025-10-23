@@ -13,6 +13,21 @@ Plugin options::
   * dpi
   * rotate
 
++-------------------------+------------------------+------+-----------------------+
+| Plugin                  | Option Name            |Type  | Usage                 |
++=========================+========================+======+=======================+
+|read                     |encapsulate             |bool  |Encapsulate PDF as PDF.|
+|                         |                        |      |Default: True          |
+|                         |                        |      |When False, the PDF is |
+|                         |                        |      |rendered as a bitmap.  |
++-------------------------+------------------------+------+-----------------------+
+|read                     |dpi                     |float |DPI when rendering as a|
+|                         |                        |      |bitmap.                |
+|                         |                        |      |Default: 72 dpi        |
++-------------------------+------------------------+------+-----------------------+
+|read                     |rotation                |float |Rotate image.          |
+|                         |                        |      |Default: 0 degrees     |
++-------------------------+------------------------+------+-----------------------+
 
 .. |Docs Badge| image:: https://readthedocs.org/projects/imagedata/badge/
     :alt: Documentation Status
