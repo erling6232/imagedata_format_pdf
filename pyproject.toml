@@ -1,15 +1,18 @@
 [build-system]
 requires = [
-    "setuptools>=61.0",
+    "setuptools>=75.6.0",
     "wheel",
-    "importlib"
+    "flake8",
+    "imagedata>=3.8.0,<3.10"
 ]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "imagedata_format_pdf"
-version = "0.0.2"
-license = {text = "MIT License"}
+version = "0.0.3"
+license-files = [
+    "LICENSE.txt",
+]
 authors = [
     {name = "Erling Andersen", email = "Erling.Andersen@Helse-Bergen.NO"}
 ]
@@ -18,7 +21,7 @@ maintainers = [
 ]
 description = "Imagedata format plugin for reading PDF files as encapsulated PDF"
 readme = "README.rst"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.15"
 keywords = [
     "dicom",
     "python",
@@ -40,7 +43,7 @@ classifiers = [
 ]
 dependencies = [
     "setuptools",
-    "imagedata>=3.8.13,<4",
+    "imagedata>=3.8.13,<3.10",
     "pypdfium2"
 ]
 
@@ -51,3 +54,10 @@ SourceCode = "https://github.com/erling6232/imagedata_format_pdf"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.cibuildwheel]
+test-requires = "coverage"
+test-command = "coverage run -m unittest discover imagedata_format_pdf/tests -t imagedata_format_pdf"
+
+[project.entry-points."imagedata_plugins"]
+biffformat = "imagedata_format_pdf.pdfplugin:PDFPlugin"
