@@ -26,8 +26,7 @@ class PDFPlugin(AbstractPlugin):
     url = "www.helse-bergen.no"
 
     def __init__(self):
-        super(PDFPlugin, self).__init__(self.name, self.description,
-                                       self.authors, self.version, self.url)
+        super(PDFPlugin, self).__init__(self.name, self.description, self.authors, self.version, self.url)
 
     def _read_image(self, f, opts, hdr):
         """Read image data from given file handle
