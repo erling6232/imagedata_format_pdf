@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@vmaster
+        uses: actions/setup-python@master
         with:
           python-version: ${{ matrix.python-version }}
 
