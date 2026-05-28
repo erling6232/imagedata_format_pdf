@@ -17,6 +17,8 @@ recursive-include docs *
 recursive-include tests *.py
 
 # include *.py
+include *.md
+include *.yml
 include *.yaml
 include Makefile
 include tox.ini
