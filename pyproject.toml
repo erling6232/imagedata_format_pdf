@@ -44,7 +44,7 @@ classifiers = [
 dependencies = [
     "setuptools",
     "imagedata>=3.8.13,<3.10",
-    "pypdfium2"
+    "pypdfium2>5.0.0"
 ]
 
 [project.urls]

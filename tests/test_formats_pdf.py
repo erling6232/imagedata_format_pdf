@@ -47,7 +47,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (1755, 1240))
+        self.assertEqual(si1.shape, (1754, 1240))
 
     # @unittest.skip("skipping test_read_two_files")
     def test_read_two_files(self):
@@ -59,7 +59,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (2, 1755, 1240))
+        self.assertEqual(si1.shape, (2, 1754, 1240))
 
     # @unittest.skip("skipping test_read_single_directory")
     def test_read_single_directory(self):
@@ -68,7 +68,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (6, 1755, 1240))
+        self.assertEqual(si1.shape, (6, 1754, 1240))
         # for axis in si1.axes:
         #    logging.debug('test_read_single_directory: axis {}'.format(axis))
 
@@ -79,7 +79,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (6, 1755, 1240))
+        self.assertEqual(si1.shape, (6, 1754, 1240))
 
     # @unittest.skip("skipping test_zipread_single_file")
     def test_zipread_single_file(self):
@@ -88,7 +88,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (1755, 1240))
+        self.assertEqual(si1.shape, (1754, 1240))
 
     # @unittest.skip("skipping test_zipread_two_files")
     def test_zipread_two_files(self):
@@ -97,7 +97,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (2, 1755, 1240))
+        self.assertEqual(si1.shape, (2, 1754, 1240))
 
     # @unittest.skip("skipping test_zipread_a_directory")
     def test_zipread_a_directory(self):
@@ -106,7 +106,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (6, 1755, 1240))
+        self.assertEqual(si1.shape, (6, 1754, 1240))
 
     # @unittest.skip("skipping test_zipread_all")
     def test_zipread_all(self):
@@ -115,7 +115,7 @@ class Test2DPDFPlugin(unittest.TestCase):
             'none',
             self.opts)
         self.assertEqual(si1.dtype, self.dtype)
-        self.assertEqual(si1.shape, (6, 1755, 1240))
+        self.assertEqual(si1.shape, (6, 1754, 1240))
 
     def test_write_dicom_single_file(self):
         si1 = Series(
