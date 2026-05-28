@@ -46,14 +46,14 @@ jobs:
           coverage xml
           coverage html
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v6
-        with:
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests
-          verbose: false
-
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v6
+#        with:
+#          fail_ci_if_error: true
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          flags: unittests
+#          verbose: false
+#
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
